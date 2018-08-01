@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">DebtZeros</string>
+    <string name="title_activity_login">Ingresar</string>
+
+    <!-- Strings related to login -->
+    <string name="prompt_email">Email</string>
+    <string name="prompt_password">Contraseña (optional)</string>
+    <string name="action_sign_in">Ingresar o Registrarse</string>
+    <string name="action_sign_in_short">Ingresar</string>
+    <string name="error_invalid_email">Esta dirección de correo es invalida</string>
+    <string name="error_invalid_password">Esta contraseña es corta</string>
+    <string name="error_incorrect_password">Esta contraseña es incorrecta</string>
+    <string name="error_field_required">Este campo es requerido</string>
+    <string name="permission_rationale">"Los permisos de contactos son necesarios para la terminacion del mismo."
+    </string>
 </resources>
