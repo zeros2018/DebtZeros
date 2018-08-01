@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "741003771787",
+    "firebase_url": "https://debtnano.firebaseio.com",
+    "project_id": "debtnano",
+    "storage_bucket": "debtnano.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:741003771787:android:7861c830e0d27564",
+        "android_client_info": {
+          "package_name": "com.zeros.nano.debtzeros"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "741003771787-h9drrq5oufta67ddo09m0tcvteodh506.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.zeros.nano.debtzeros",
+            "certificate_hash": "8a91036e8160e69ecc08d7348ed8ad151ae55bed"
+          }
+        },
+        {
+          "client_id": "741003771787-vm0j3j03ljovi22o7bdl8oeieauc56q3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3vLFOU9cwOaLuR78L24PXDFKmoy-ahaw"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "741003771787-vm0j3j03ljovi22o7bdl8oeieauc56q3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
