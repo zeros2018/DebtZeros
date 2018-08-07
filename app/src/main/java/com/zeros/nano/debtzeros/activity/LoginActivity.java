@@ -3,10 +3,10 @@ package com.zeros.nano.debtzeros.activity;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
-import android.support.v7.app.AppCompatActivity;
 import android.app.LoaderManager.LoaderCallbacks;
 
 import android.content.CursorLoader;
@@ -26,7 +26,6 @@ import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -46,32 +45,19 @@ import static android.Manifest.permission.READ_CONTACTS;
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends BaseAppCompatNoDrawerActivity implements LoaderCallbacks<Cursor> {
-
-    /**
-     * Id to identity READ_CONTACTS permission request.
-     */
+public class LoginActivity extends BaseAppCompatNoDrawerActivity implements LoaderCallbacks<Cursor>, View.OnClickListener {
 
     private static final int REQUEST_READ_CONTACTS = 0;
     private static final String TAG = "LoginA";
 
-    /**
-     * A dummy authentication store containing known user names and passwords.
-     * TODO: remove after connecting to a real authentication system.
-     */
-    private static final String[] DUMMY_CREDENTIALS = new String[]{
-            "foo@example.com:hello", "bar@example.com:world"
-    };
-    /**
-     * Keep track of the login task to ensure we can cancel it if requested.
-     */
-    private UserLoginTask mAuthTask = null;
+    //Keep track of the login task to ensure we can cancel it if requested.
+    private UserLoginRegisterTask mAuthTask = null;
 
     // UI references.
-    private AutoCompleteTextView mEmailView;
-    private EditText mPasswordView;
-    private View mProgressView;
+    private View mProgress;
     private View mLoginFormView;
+    private AutoCompleteTextView mEmail;
+    private EditText mPassword;
 
     //Nuevo
     FirebaseAuth mAuth;
@@ -80,14 +66,14 @@ public class LoginActivity extends BaseAppCompatNoDrawerActivity implements Load
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-        // Set up the login form.
-        mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
+
+        initView();
         populateAutoComplete();
 
-        mPasswordView = (EditText) findViewById(R.id.password);
-        mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+        mPassword.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
+                Log.i(TAG, "onEditorAction : id = " + id);
                 if (id == EditorInfo.IME_ACTION_DONE || id == EditorInfo.IME_NULL) {
                     attemptLogin();
                     return true;
@@ -95,37 +81,20 @@ public class LoginActivity extends BaseAppCompatNoDrawerActivity implements Load
                 return false;
             }
         });
-
-        Button mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
-        mEmailSignInButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                attemptLogin();
-            }
-        });
-
-        mLoginFormView = findViewById(R.id.login_form);
-        mProgressView = findViewById(R.id.login_progress);
-
-        // Nuevo
-        mAuth = FirebaseAuth.getInstance();
     }
 
+    private void initView(){
+        mEmail = findViewById(R.id.email);
+        mPassword = findViewById(R.id.password);
 
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        // Check if user is signed in (non-null) and update UI accordingly.
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-//        updateUI(currentUser);
+        mLoginFormView = findViewById(R.id.login_form);
+        mProgress = findViewById(R.id.login_progress);
     }
 
     private void populateAutoComplete() {
         if (!mayRequestContacts()) {
             return;
         }
-
         getLoaderManager().initLoader(0, null, this);
     }
 
@@ -137,8 +106,8 @@ public class LoginActivity extends BaseAppCompatNoDrawerActivity implements Load
             return true;
         }
         if (shouldShowRequestPermissionRationale(READ_CONTACTS)) {
-            Snackbar.make(mEmailView, R.string.permission_rationale, Snackbar.LENGTH_INDEFINITE)
-                    .setAction(android.R.string.ok, new View.OnClickListener() {
+            Snackbar.make(mEmail, R.string.permission_rationale, Snackbar.LENGTH_INDEFINITE)
+                    .setAction(android.R.string.ok, new OnClickListener() {
                         @Override
                         @TargetApi(Build.VERSION_CODES.M)
                         public void onClick(View v) {
@@ -151,9 +120,17 @@ public class LoginActivity extends BaseAppCompatNoDrawerActivity implements Load
         return false;
     }
 
-    /**
-     * Callback received when a permissions request has been completed.
-     */
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (mAuth == null)
+            mAuth = FirebaseAuth.getInstance();
+
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        updateUI(currentUser);
+    }
+
+    // Callback received when a permissions request has been completed.
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
@@ -164,72 +141,7 @@ public class LoginActivity extends BaseAppCompatNoDrawerActivity implements Load
         }
     }
 
-
-    /**
-     * Attempts to sign in or register the account specified by the login form.
-     * If there are form errors (invalid email, missing fields, etc.), the
-     * errors are presented and no actual login attempt is made.
-     */
-    private void attemptLogin() {
-        if (mAuthTask != null) {
-            return;
-        }
-
-        // Reset errors.
-        mEmailView.setError(null);
-        mPasswordView.setError(null);
-
-        // Store values at the time of the login attempt.
-        String email = mEmailView.getText().toString();
-        String password = mPasswordView.getText().toString();
-
-        boolean cancel = false;
-        View focusView = null;
-
-        // Check for a valid password, if the user entered one.
-        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
-            mPasswordView.setError(getString(R.string.error_invalid_password));
-            focusView = mPasswordView;
-            cancel = true;
-        }
-
-        // Check for a valid email address.
-        if (TextUtils.isEmpty(email)) {
-            mEmailView.setError(getString(R.string.error_field_required));
-            focusView = mEmailView;
-            cancel = true;
-        } else if (!isEmailValid(email)) {
-            mEmailView.setError(getString(R.string.error_invalid_email));
-            focusView = mEmailView;
-            cancel = true;
-        }
-
-        if (cancel) {
-            // There was an error; don't attempt login and focus the first
-            // form field with an error.
-            focusView.requestFocus();
-        } else {
-            // Show a progress spinner, and kick off a background task to
-            // perform the user login attempt.
-            showProgress(true);
-            mAuthTask = new UserLoginTask(email, password);
-            mAuthTask.execute((Void) null);
-        }
-    }
-
-    private boolean isEmailValid(String email) {
-        //TODO: Replace this with your own logic
-        return email.contains("@");
-    }
-
-    private boolean isPasswordValid(String password) {
-        //TODO: Replace this with your own logic
-        return password.length() > 4;
-    }
-
-    /**
-     * Shows the progress UI and hides the login form.
-     */
+     //Shows the progress UI and hides the login form.
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
     private void showProgress(final boolean show) {
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
@@ -247,18 +159,18 @@ public class LoginActivity extends BaseAppCompatNoDrawerActivity implements Load
                 }
             });
 
-            mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-            mProgressView.animate().setDuration(shortAnimTime).alpha(
+            mProgress.setVisibility(show ? View.VISIBLE : View.GONE);
+            mProgress.animate().setDuration(shortAnimTime).alpha(
                     show ? 1 : 0).setListener(new AnimatorListenerAdapter() {
                 @Override
                 public void onAnimationEnd(Animator animation) {
-                    mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
+                    mProgress.setVisibility(show ? View.VISIBLE : View.GONE);
                 }
             });
         } else {
             // The ViewPropertyAnimator APIs are not available, so simply show
             // and hide the relevant UI components.
-            mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
+            mProgress.setVisibility(show ? View.VISIBLE : View.GONE);
             mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
         }
     }
@@ -297,14 +209,111 @@ public class LoginActivity extends BaseAppCompatNoDrawerActivity implements Load
 
     }
 
+//    @Override
+//    public void onClick(View view){
+//        switch (view.getId()){
+//            case R.id.btn_sign_reg:
+//                Log.i(TAG, "onClick : entro reg" );
+//                attemptRegister();
+//                break;
+//            case R.id.btn_sign_in:
+//                Log.i(TAG, "onClick : entro sig" );
+//                attemptLogin();
+//                break;
+//        }
+//    }
+
+    private void attemptLogin() {
+
+        if (!validate()) {
+            // Store values at the time of the login attempt.
+            String email = mEmail.getText().toString();
+            String password = mPassword.getText().toString();
+            showProgress(true);
+            mAuthTask = new UserLoginRegisterTask(email, password, 1);
+            mAuthTask.execute((Void) null);
+        }
+    }
+
+    private boolean validate(){
+        // Reset errors.
+        mEmail.setError(null);
+        mPassword.setError(null);
+
+        // Store values at the time of the login attempt.
+        String email = mEmail.getText().toString();
+        String password = mPassword.getText().toString();
+
+        boolean cancel = false;
+        View focusView = null;
+
+        // Check for a valid password, if the user entered one.
+        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
+            mPassword.setError(getString(R.string.error_invalid_password));
+            focusView = mPassword;
+            cancel = true;
+        }
+
+        // Check for a valid email address.
+        if (TextUtils.isEmpty(email)) {
+            mEmail.setError(getString(R.string.error_field_required));
+            focusView = mEmail;
+            cancel = true;
+        } else if (!isEmailValid(email)) {
+            mEmail.setError(getString(R.string.error_invalid_email));
+            focusView = mEmail;
+            cancel = true;
+        }
+
+        if (cancel)
+            focusView.requestFocus();
+
+        return cancel;
+    }
+
+    private void attemptRegister(){
+        if (!validate()) {
+            // Store values at the time of the login attempt.
+            String email = mEmail.getText().toString();
+            String password = mPassword.getText().toString();
+            showProgress(true);
+            mAuthTask = new UserLoginRegisterTask(email, password, 2);
+            mAuthTask.execute((Void) null);
+        }
+    }
+
     private void addEmailsToAutoComplete(List<String> emailAddressCollection) {
         //Create adapter to tell the AutoCompleteTextView what to show in its dropdown list.
         ArrayAdapter<String> adapter =
                 new ArrayAdapter<>(LoginActivity.this,
                         android.R.layout.simple_dropdown_item_1line, emailAddressCollection);
 
-        mEmailView.setAdapter(adapter);
+        mEmail.setAdapter(adapter);
     }
+
+
+    public void singOutOnClick(View view) {
+
+    }
+
+    public void singInOnClick(View view) {
+
+    }
+
+    @Override
+    public void onClick(View v) {
+                switch (v.getId()){
+            case R.id.btn_sign_reg:
+                Log.i(TAG, "onClick : entro reg" );
+                attemptRegister();
+                break;
+            case R.id.btn_sign_in:
+                Log.i(TAG, "onClick : entro sig" );
+                attemptLogin();
+                break;
+        }
+    }
+
 
 
     private interface ProfileQuery {
@@ -317,67 +326,22 @@ public class LoginActivity extends BaseAppCompatNoDrawerActivity implements Load
         int IS_PRIMARY = 1;
     }
 
-    /**
-     * Represents an asynchronous login/registration task used to authenticate
-     * the user.
-     */
-    public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
-
-        private final String mEmail;
-        private final String mPassword;
-
-        UserLoginTask(String email, String password) {
-            mEmail = email;
-            mPassword = password;
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            // TODO: attempt authentication against a network service.
-
-            try {
-                // Simulate network access.
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                return false;
-            }
-
-            for (String credential : DUMMY_CREDENTIALS) {
-                String[] pieces = credential.split(":");
-                if (pieces[0].equals(mEmail)) {
-                    // Account exists, return true if the password matches.
-                    return pieces[1].equals(mPassword);
-                }
-            }
-
-            // TODO: register the new account here.
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mAuthTask = null;
-            showProgress(false);
-
-            if (success) {
-                finish();
-            } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
-                mPasswordView.requestFocus();
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            mAuthTask = null;
-            showProgress(false);
-        }
+    // Validations
+    private boolean isEmailValid(String email) {
+        //TODO: Replace this with your own logic
+        return email.contains("@");
     }
 
+    private boolean isPasswordValid(String password) {
+        //TODO: Replace this with your own logic
+        return password.length() > 4;
+    }
 
+    // FireBase Methods
     public void createAcount(){
-        String email = mEmailView.getText().toString();
-        String password = mPasswordView.getText().toString();
+        Log.i(TAG, "createAcount" );
+        String email = mEmail.getText().toString();
+        String password = mPassword.getText().toString();
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
@@ -386,13 +350,13 @@ public class LoginActivity extends BaseAppCompatNoDrawerActivity implements Load
                             // Sign in success, update UI with the signed-in user's information
                             Log.d(TAG, "createUserWithEmail:success");
                             FirebaseUser user = mAuth.getCurrentUser();
-                            //updateUI(user);
+                            updateUI(user);
                         } else {
                             // If sign in fails, display a message to the user.
                             Log.w(TAG, "createUserWithEmail:failure", task.getException());
-                            Toast.makeText(LoginActivity.this, "Authentication failed.",
+                            Toast.makeText(LoginActivity.this, R.string.massage_authetification_failed,
                                     Toast.LENGTH_SHORT).show();
-                            //updateUI(null);
+                            updateUI(null);
                         }
 
                         // ...
@@ -401,8 +365,8 @@ public class LoginActivity extends BaseAppCompatNoDrawerActivity implements Load
     }
 
     public void signIn(){
-        String email = mEmailView.getText().toString();
-        String password = mPasswordView.getText().toString();
+        String email = mEmail.getText().toString();
+        String password = mPassword.getText().toString();
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
@@ -411,18 +375,79 @@ public class LoginActivity extends BaseAppCompatNoDrawerActivity implements Load
                             // Sign in success, update UI with the signed-in user's information
                             Log.d(TAG, "signInWithEmail:success");
                             FirebaseUser user = mAuth.getCurrentUser();
-//                            updateUI(user);
+                            updateUI(user);
                         } else {
                             // If sign in fails, display a message to the user.
                             Log.w(TAG, "signInWithEmail:failure", task.getException());
-                            Toast.makeText(LoginActivity.this, "Authentication failed.",
+                            Toast.makeText(LoginActivity.this, R.string.massage_authetification_failed,
                                     Toast.LENGTH_SHORT).show();
-//                            updateUI(null);
+                            updateUI(null);
                         }
 
                         // ...
                     }
                 });
+    }
+
+    private void updateUI(FirebaseUser user) {
+        hideProgressDialog();
+        if (user != null) {
+            startActivity(new Intent(LoginActivity.this, HomeActivity.class));
+            finish();
+        }
+        showProgress(false);
+    }
+
+    private void hideProgressDialog() {
+    }
+
+    //Represents an asynchronous login/registration task used to authenticate the user.
+    public class UserLoginRegisterTask extends AsyncTask<Void, Void, Boolean> {
+
+        private final String mEmail;
+        private final String mPassword;
+        private final int mType;
+
+        UserLoginRegisterTask(String email, String password, int type) {
+            mEmail = email;
+            mPassword = password;
+            mType = type;
+        }
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+
+            try {
+
+                if (mType == 1)
+                    signIn();
+                else
+                    createAcount();
+
+            } catch (Exception e) {
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        protected void onPostExecute(final Boolean success) {
+            mAuthTask = null;
+
+            if (success) {
+                FirebaseUser currentUser = mAuth.getCurrentUser();
+            } else if (mType == 1){
+                LoginActivity.this.mPassword.setError(getString(R.string.error_incorrect_password));
+                LoginActivity.this.mPassword.requestFocus();
+            }
+        }
+
+        @Override
+        protected void onCancelled() {
+            mAuthTask = null;
+            showProgress(false);
+        }
     }
 
 }

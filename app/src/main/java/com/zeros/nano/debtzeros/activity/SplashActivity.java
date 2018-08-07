@@ -33,5 +33,6 @@ public class SplashActivity extends BaseAppCompatNoDrawerActivity {
 
     private void navigate() {
          startActivity(new Intent(SplashActivity.this, LoginActivity.class));
+         finish();
     }
 }

@@ -25,13 +25,12 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-
-
         <LinearLayout
             android:id="@+id/email_login_form"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -71,13 +70,25 @@
 
             </android.support.design.widget.TextInputLayout>
 
+
             <Button
-                android:id="@+id/email_sign_in_button"
+                android:id="@+id/btn_sign_in"
                 style="?android:textAppearanceSmall"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="@string/action_sign_in"
+                android:onClick="onClick"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btn_sign_reg"
+                style="?android:textAppearanceSmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/action_sign_reg"
+                android:onClick="onClick"
                 android:textStyle="bold" />
 
         </LinearLayout>
